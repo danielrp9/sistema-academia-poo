@@ -21,18 +21,44 @@ O **Sistema de Gestao de Academia** e uma plataforma corporativa desenvolvida pa
 
 ---
 
-## 2. Decisoes de Arquitetura e Engenharia (Trade-offs e Racional)
+## 2. Origem e Evolucao do Projeto
+
+### 2.1 Contexto Academico Inicial
+Este projeto teve sua concepcao original no contexto academico, desenvolvido como trabalho pratico da disciplina de **Programacao Orientada a Objetos (POO)** no curso de **Bacharelado em Sistemas de Informacao** da **Universidade Federal dos Vales do Jequitinhonha e Mucuri (UFVJM)**. O escopo primario visava consolidar a sintaxe da linguagem Java e os quatro pilares fundamentais da orientacao a objetos: abstracao, encapsulamento, heranca e polimorfismo.
+
+### 2.2 O Desafio da Revisao e Maturidade de Engenharia
+A motivacao para revisitar e reescrever o projeto derivou da necessidade de elevar os conceitos de POO a um patamar corporativo e aderente as praticas contemporaneas de Engenharia de Software (*Production-Ready*). 
+
+O desafio consistiu em transcender a barreira de uma aplicacao de terminal com dados volateis e migra-la para um ecossistema distribuido, desacoplado e resiliente, incorporando padroes de design consagrados (GoF), seguranca defensiva, persistencia transacional ACID e uma interface de usuario corporativa orientada a produtividade operacional.
+
+### 2.3 Salto Arquitetural e Tecnologico
+
+| Dimensao | Versao Academica Inicial (POO Basico) | Versao Refatorada (Spring Boot Enterprise Edition) |
+| :--- | :--- | :--- |
+| **Interface com Usuario** | Console / Terminal via Scanner CLI | Single Page Application (SPA) em React 18, TypeScript e Tailwind CSS no padrao Google Workspace |
+| **Arquitetura de Software** | Monolitica acoplada ao metodo `main` | Clean Layered Architecture (Domain, Service, Repository, Web/DTO, Security, Infra) |
+| **Padroes de Projeto (Design Patterns)** | Heranca e polimorfismo basicos | Strategy (Politicas de Cancelamento/Estorno), Factory (Transacoes Financeiras), Interceptors |
+| **Camada de Persistencia** | Dados em memoria estatica / Arquivos locais | Spring Data JPA / Hibernate com PostgreSQL / H2 e controle transacional (`@Transactional`) |
+| **Versionamento de Banco** | Inexistente (recriacao manual de dados) | Migracoes versionadas e deterministicas via Flyway (`V1`, `V2`) |
+| **Comunicacao e Integracao** | Chamadas diretas de metodos em memoria | RESTful API documentada sob a especificacao OpenAPI 3.0 / Swagger UI |
+| **Seguranca e Acesso** | Sem autenticacao formal ou controle de perfis | Autenticacao Stateless JWT com HMAC-SHA256 e controle de acesso baseado em papeis (RBAC) |
+| **Tratamento de Erros** | Excecoes nao estruturadas ou prints no console | RFC 7807 (Problem Details) com `GlobalExceptionHandler` e codigos HTTP semanticos |
+| **Qualidade e Testes** | Execucao manual via terminal | Testes automatizados de integracao com `MockMvc`, JUnit 5 e isolamento transacional |
+
+---
+
+## 3. Decisoes de Arquitetura e Engenharia (Trade-offs e Racional)
 
 Ao desenhar a solucao, priorizou-se manutenibilidade, isolamento de dominio e performance. Abaixo estao detalhadas as decisoes tecnicas adotadas e seus respectivos embasamentos:
 
-### 2.1 Backend: Java 21 LTS e Spring Boot 3.3.4
+### 3.1 Backend: Java 21 LTS e Spring Boot 3.3.4
 * **Decisao**: Utilizar a versao Java 21 LTS aliada ao Spring Boot 3.x com Spring Data JPA e Hibernate 6.
 * **Racional**:
   * **Confiabilidade Empresarial**: Ecossistema maduro com suporte nativo a transacoes ACID (`@Transactional`), injecao de dependencia e ecossistema consolidado de seguranca.
   * **Tipagem Estrita e Records**: Uso de `Records` do Java moderno para DTOs imutaveis, garantindo que dados trafegados entre camadas nao sofram mutacoes colaterais.
   * **Compatibilidade com Virtual Threads (Project Loom)**: Preparado para escalabilidade de I/O nao bloqueante em conexoes de catracas e consultas analiticas.
 
-### 2.2 Arquitetura em Camadas (Layered Clean Architecture)
+### 3.2 Arquitetura em Camadas (Layered Clean Architecture)
 * **Decisao**: Separacao explicita entre **Dominio** (`br.com.academia.domain`), **Repositorios** (`br.com.academia.repository`), **Servicos de Negocio** (`br.com.academia.service`), **Infraestrutura/Seguranca** (`br.com.academia.infra`) e **Camada Web/DTOs** (`br.com.academia.web`).
 * **Racional**:
   * **Isolamento de Regras de Negocio**: Toda a logica de precificacao, verificacao de catraca e fechamento de DRE reside na camada de servico (`@Service`), nunca em controllers.
@@ -53,7 +79,7 @@ br.com.academia/
     └── config/              # CORS, OpenAPI e WebMvc SPA Routing
 ```
 
-### 2.3 Seguranca: JWT Stateless e Role-Based Access Control (RBAC)
+### 3.3 Seguranca: JWT Stateless e Role-Based Access Control (RBAC)
 * **Decisao**: Autenticacao sem estado baseada em JSON Web Tokens com chaves HMAC-SHA256 e controle granular por perfil (`ADMIN`, `COLABORADOR`, `CLIENTE`).
 * **Racional**:
   * **Escalabilidade Horizontal**: Sem dependencia de sessao HTTP (`SessionCreationPolicy.STATELESS`), permitindo distribuicao em multiplos nos.
@@ -62,17 +88,17 @@ br.com.academia/
     * `COLABORADOR` e `ADMIN` operam webhook da catraca, inventario e usuarios.
     * `CLIENTE` possui visao estrita de seus proprios agendamentos.
 
-### 2.4 Controle de Concorrencia e Validacao da Catraca
+### 3.4 Controle de Concorrencia e Validacao da Catraca
 * **Decisao**: O servico `CatracaService` executa validacao deterministica de agendamentos com status `CONFIRMADO`, associando o intervalo de tempo exato (`dataHoraInicio` ate `dataHoraFim`) do aluno.
 * **Racional**:
   * **Bloqueio a Fraudes**: Qualquer tentativa de acesso fora do horario agendado, com mensalidade inativa ou sem confirmacao de pagamento gera log de auditoria persistido (`RegistroCatraca`) com status `liberado = false` e motivo explicito (ex: `"Nenhuma diaria ou mensalidade confirmada e ativa para este horario"`), retornando HTTP 403 Forbidden.
 
-### 2.5 Versionamento de Banco de Dados com Flyway
+### 3.5 Versionamento de Banco de Dados com Flyway
 * **Decisao**: Desabilitar geracao automatica de tabelas em producao (`ddl-auto: validate`) e adotar migracoes versionadas via Flyway (`V1__create_tables.sql`, `V2__insert_initial_data.sql`).
 * **Racional**:
   * **Rastreabilidade e Determinismo**: Cada alteracao de schema e versionada em codigo. Ambientes de integracao continua, testes locais e producao compartilham rigorosamente a mesma estrutura relacional.
 
-### 2.6 Frontend: Monorepo SPA Integrado (React + TypeScript + Tailwind)
+### 3.6 Frontend: Monorepo SPA Integrado (React + TypeScript + Tailwind)
 * **Decisao**: Frontend construido em React 18 / Vite, compilado diretamente para a pasta estatica do Spring Boot (`src/main/resources/static`).
 * **Racional**:
   * **Simplicidade Operacional**: Um unico artefato executavel (`.jar`) entrega tanto a API REST quanto a interface web, reduzindo a complexidade de infraestrutura e pipelines de deploy.
@@ -80,7 +106,7 @@ br.com.academia/
 
 ---
 
-## 3. Regras de Negocio Implementadas
+## 4. Regras de Negocio Implementadas
 
 | Modulo | Regra de Negocio | Comportamento do Sistema |
 | :--- | :--- | :--- |
@@ -93,7 +119,7 @@ br.com.academia/
 
 ---
 
-## 4. Stack Tecnologica
+## 5. Stack Tecnologica
 
 ### Backend
 * **Linguagem**: Java 21 (LTS)
@@ -115,7 +141,7 @@ br.com.academia/
 
 ---
 
-## 5. Como Executar o Projeto
+## 6. Como Executar o Projeto
 
 ### Pre-requisitos
 * **Java JDK 21+** instalado e configurado no `PATH`.
@@ -124,7 +150,7 @@ br.com.academia/
 
 ---
 
-### 5.1 Compilacao do Frontend
+### 6.1 Compilacao do Frontend
 Para compilar os arquivos estaticos do React para a pasta de recursos do Spring Boot:
 
 ```bash
@@ -136,7 +162,7 @@ cd ..
 
 ---
 
-### 5.2 Execucao dos Testes Automatizados
+### 6.2 Execucao dos Testes Automatizados
 Para executar a suite de testes de integracao e unitarios do Backend:
 
 ```bash
@@ -147,7 +173,7 @@ mvn clean test
 
 ---
 
-### 5.3 Inicializacao da Aplicacao
+### 6.3 Inicializacao da Aplicacao
 Inicie o servidor Spring Boot:
 
 ```bash
@@ -164,7 +190,7 @@ A aplicacao estara disponivel em:
 
 ---
 
-## 6. Credenciais Padrao para Testes
+## 7. Credenciais Padrao para Testes
 
 | Perfil | E-mail | Senha | Permissoes |
 | :--- | :--- | :--- | :--- |
@@ -173,7 +199,7 @@ A aplicacao estara disponivel em:
 
 ---
 
-## 7. Como Foi Construido (Jornada de Desenvolvimento Passo a Passo)
+## 8. Como Foi Construido (Jornada de Desenvolvimento Passo a Passo)
 
 A construcao do sistema seguiu uma abordagem estruturada em 6 fases de engenharia:
 
@@ -219,5 +245,5 @@ flowchart LR
 
 ---
 
-## 8. Licenca
+## 9. Licenca
 Este projeto e distribuido sob os termos da licenca proprietaria corporativa para fins de demonstracao tecnica e avaliacao profissional.
