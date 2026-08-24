@@ -1,4 +1,4 @@
-# Sistema de Gestao de Academia — Arquitetura Corporativa e Controle de Acesso
+# Sistema de Gestao de Academia
 
 [![Java 21](https://img.shields.io/badge/Java-21%20LTS-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.4-brightgreen.svg)](https://spring.io/projects/spring-boot)
@@ -6,152 +6,126 @@
 [![Security](https://img.shields.io/badge/Security-JWT%20%7C%20RBAC-red.svg)](https://jwt.io/)
 [![Build](https://img.shields.io/badge/Tests-8%2F8%20Passing-success.svg)]()
 
-> Solucao empresarial completa para gestao operacional, financeira e de acesso fisico para redes de academias. Desenvolvido com foco em alta confiabilidade, seguranca transacional, integridade de dados e conformidade contabil.
+Aplicacao web full-stack para administracao de academias, integrando controle de acesso por catraca, reservas de salas com limite de lotacao, fechamento de fluxo de caixa (DRE) e controle de vendas de produtos.
 
 ---
 
-## 1. Sumario Executivo
+## 1. Sobre o Projeto
 
-O **Sistema de Gestao de Academia** e uma plataforma corporativa desenvolvida para resolver problemas criticos na operacao de academias de medio e grande porte:
+O sistema centraliza os processos operacionais e financeiros da academia em uma unica aplicacao:
 
-1. **Controle de Acesso Fisico Anti-Fraude**: Validacao em tempo real de hardware de catracas com bloqueio instantaneo de inadimplentes e acessos fora de horario.
-2. **Prevencao de Overbooking e Concorrencia**: Controle transacional de capacidade maxima por sala em diarias e mensalidades.
-3. **Gestao Financeira e DRE Consolidado**: Apuracao contabil em tempo real do Demonstrativo do Resultado do Exercicio (Receitas de planos + Vendas de balcao − Despesas operacionais).
-4. **Ciclo de Vida de Agendamentos**: Rotina automatizada de expiracao de reservas preliminares nao pagas no prazo legal de 5 dias uteis com estorno transacional.
+1. **Validacao de Catraca**: Validacao automatica de entrada e saida com base em planos mensais ou diarias ativas no horario exato do acesso. Tentativas invalidas registram auditoria com o motivo da recusa e CPF mascarado.
+2. **Controle de Vagas e Agendamentos**: Bloqueio de reservas quando a capacidade maxima da sala e atingida e rotina para cancelar reservas preliminares pendentes de pagamento ha mais de 5 dias uteis.
+3. **Balanco Financeiro (DRE)**: Calculo em tempo real de receitas (planos, diarias e produtos) e despesas operacionais cadastradas, gerando o saldo liquido por mes e ano.
+4. **Inventario e Vendas**: Registro de itens da loja com baixa automatica de estoque e lancamento transacional na receita.
 
 ---
 
 ## 2. Origem e Evolucao do Projeto
 
 ### 2.1 Contexto Academico Inicial
-Este projeto teve sua concepcao original no contexto academico, desenvolvido como trabalho pratico da disciplina de **Programacao Orientada a Objetos (POO)** no curso de **Bacharelado em Sistemas de Informacao** da **Universidade Federal dos Vales do Jequitinhonha e Mucuri (UFVJM)**. O escopo primario visava consolidar a sintaxe da linguagem Java e os quatro pilares fundamentais da orientacao a objetos: abstracao, encapsulamento, heranca e polimorfismo.
+O projeto nasceu originalmente como trabalho pratico na disciplina de **Programacao Orientada a Objetos (POO)** durante o curso de **Bacharelado em Sistemas de Informacao** na **Universidade Federal dos Vales do Jequitinhonha e Mucuri (UFVJM)**. O objetivo inicial era exercitar os fundamentos de POO em Java: classes, heranca, polimorfismo e encapsulamento.
 
-### 2.2 O Desafio da Revisao e Maturidade de Engenharia
-A motivacao para revisitar e reescrever o projeto derivou da necessidade de elevar os conceitos de POO a um patamar corporativo e aderente as praticas contemporaneas de Engenharia de Software (*Production-Ready*). 
+### 2.2 Motivacao da Refatoracao
+A motivacao para revisitar o projeto foi transformar o prototipo academico — que rodava em terminal com dados em memoria — em uma aplicacao completa, desacoplada e pronta para execucao real, aplicando boas praticas de arquitetura, seguranca e persistencia relacional.
 
-O desafio consistiu em transcender a barreira de uma aplicacao de terminal com dados volateis e migra-la para um ecossistema distribuido, desacoplado e resiliente, incorporando padroes de design consagrados (GoF), seguranca defensiva, persistencia transacional ACID e uma interface de usuario corporativa orientada a produtividade operacional.
+### 2.3 Comparativo Tecnico
 
-### 2.3 Salto Arquitetural e Tecnologico
-
-| Dimensao | Versao Academica Inicial (POO Basico) | Versao Refatorada (Spring Boot Enterprise Edition) |
+| Aspecto | Versao Inicial (POO Basico) | Versao Atual (Spring Boot + React) |
 | :--- | :--- | :--- |
-| **Interface com Usuario** | Console / Terminal via Scanner CLI | Single Page Application (SPA) em React 18, TypeScript e Tailwind CSS no padrao Google Workspace |
-| **Arquitetura de Software** | Monolitica acoplada ao metodo `main` | Clean Layered Architecture (Domain, Service, Repository, Web/DTO, Security, Infra) |
-| **Padroes de Projeto (Design Patterns)** | Heranca e polimorfismo basicos | Strategy (Politicas de Cancelamento/Estorno), Factory (Transacoes Financeiras), Interceptors |
-| **Camada de Persistencia** | Dados em memoria estatica / Arquivos locais | Spring Data JPA / Hibernate com PostgreSQL / H2 e controle transacional (`@Transactional`) |
-| **Versionamento de Banco** | Inexistente (recriacao manual de dados) | Migracoes versionadas e deterministicas via Flyway (`V1`, `V2`) |
-| **Comunicacao e Integracao** | Chamadas diretas de metodos em memoria | RESTful API documentada sob a especificacao OpenAPI 3.0 / Swagger UI |
-| **Seguranca e Acesso** | Sem autenticacao formal ou controle de perfis | Autenticacao Stateless JWT com HMAC-SHA256 e controle de acesso baseado em papeis (RBAC) |
-| **Tratamento de Erros** | Excecoes nao estruturadas ou prints no console | RFC 7807 (Problem Details) com `GlobalExceptionHandler` e codigos HTTP semanticos |
-| **Qualidade e Testes** | Execucao manual via terminal | Testes automatizados de integracao com `MockMvc`, JUnit 5 e isolamento transacional |
+| **Interface** | Linha de comando (CLI com Scanner) | Interface web em React, TypeScript e Tailwind CSS |
+| **Arquitetura** | Monolitica acoplada no `main` | Camadas desacopladas (Domain, Service, Repository, Web/DTO, Security) |
+| **Padroes de Projeto** | Heranca e polimorfismo simples | Strategy (reembolsos e cancelamentos), Factory (transacoes) |
+| **Persistencia** | Listas em memoria / arquivos locais | Banco relacional com Spring Data JPA / Hibernate e transacoes ACID |
+| **Versionamento de Banco** | Nenhum | Migracoes versionadas com Flyway (`V1`, `V2`) |
+| **Comunicacao** | Chamadas diretas de metodo | API RESTful documentada com OpenAPI 3 / Swagger |
+| **Seguranca** | Sem autenticacao | Autenticacao stateless via JWT e controle de papeis (RBAC) |
+| **Tratamento de Erros** | Prints no terminal | Respostas padronizadas via RFC 7807 (Problem Details) |
+| **Testes** | Testes manuais no terminal | Testes automatizados com JUnit 5, Mockito e MockMvc |
 
 ---
 
-## 3. Decisoes de Arquitetura e Engenharia (Trade-offs e Racional)
+## 3. Decisoes Tecnicas e Estrutura
 
-Ao desenhar a solucao, priorizou-se manutenibilidade, isolamento de dominio e performance. Abaixo estao detalhadas as decisoes tecnicas adotadas e seus respectivos embasamentos:
-
-### 3.1 Backend: Java 21 LTS e Spring Boot 3.3.4
-* **Decisao**: Utilizar a versao Java 21 LTS aliada ao Spring Boot 3.x com Spring Data JPA e Hibernate 6.
-* **Racional**:
-  * **Confiabilidade Empresarial**: Ecossistema maduro com suporte nativo a transacoes ACID (`@Transactional`), injecao de dependencia e ecossistema consolidado de seguranca.
-  * **Tipagem Estrita e Records**: Uso de `Records` do Java moderno para DTOs imutaveis, garantindo que dados trafegados entre camadas nao sofram mutacoes colaterais.
-  * **Compatibilidade com Virtual Threads (Project Loom)**: Preparado para escalabilidade de I/O nao bloqueante em conexoes de catracas e consultas analiticas.
-
-### 3.2 Arquitetura em Camadas (Layered Clean Architecture)
-* **Decisao**: Separacao explicita entre **Dominio** (`br.com.academia.domain`), **Repositorios** (`br.com.academia.repository`), **Servicos de Negocio** (`br.com.academia.service`), **Infraestrutura/Seguranca** (`br.com.academia.infra`) e **Camada Web/DTOs** (`br.com.academia.web`).
-* **Racional**:
-  * **Isolamento de Regras de Negocio**: Toda a logica de precificacao, verificacao de catraca e fechamento de DRE reside na camada de servico (`@Service`), nunca em controllers.
-  * **Desacoplamento de Frameworks nas Entidades**: Entidades JPA representam puramente o modelo relacional de negocio.
+### 3.1 Backend em Camadas
+A organizacao do codigo segue a separacao de responsabilidades em camadas bem definidas:
 
 ```
 br.com.academia/
-├── domain/                  # Entidades JPA (Usuario, Sala, Agendamento, RegistroCatraca, etc.)
-│   └── enums/               # Enums de dominio (Role, StatusAgendamento, TipoEvento, etc.)
-├── service/                 # Regras de negocio e casos de uso (AgendamentoService, CatracaService, etc.)
-├── repository/              # Spring Data JPA Repositories
+├── domain/                  # Entidades de banco e enums de negocio
+├── service/                 # Regras de negocio (Catraca, Agendamentos, Financeiro, etc.)
+│   ├── factory/             # Criacao de transacoes financeiras
+│   └── strategy/            # Calculo de politicas de cancelamento e reembolso
+├── repository/              # Interfaces Spring Data JPA
 ├── web/
-│   ├── controller/          # REST Controllers com OpenAPI / Swagger 3
-│   └── dto/                 # DTOs de entrada/saida (Java Records)
+│   ├── controller/          # Endpoints REST protegidos
+│   └── dto/                 # Java Records para entrada e saida de dados
 └── infra/
-    ├── security/            # Spring Security 6, JWT Filter e RBAC
-    ├── exception/           # Global Exception Handler (RFC 7807 Problem Details)
-    └── config/              # CORS, OpenAPI e WebMvc SPA Routing
+    ├── security/            # Filtro JWT e configuracoes do Spring Security
+    └── exception/           # Manipulador global de excecoes
 ```
 
-### 3.3 Seguranca: JWT Stateless e Role-Based Access Control (RBAC)
-* **Decisao**: Autenticacao sem estado baseada em JSON Web Tokens com chaves HMAC-SHA256 e controle granular por perfil (`ADMIN`, `COLABORADOR`, `CLIENTE`).
-* **Racional**:
-  * **Escalabilidade Horizontal**: Sem dependencia de sessao HTTP (`SessionCreationPolicy.STATELESS`), permitindo distribuicao em multiplos nos.
-  * **Principio do Menor Privilegio**:
-    * Apenas `ADMIN` acessa relatorios financeiros e lanca despesas (`/api/financeiro/**`).
-    * `COLABORADOR` e `ADMIN` operam webhook da catraca, inventario e usuarios.
-    * `CLIENTE` possui visao estrita de seus proprios agendamentos.
+### 3.2 Seguranca e Autenticacao
+* **JWT (JSON Web Token)**: Autenticacao sem sessao no servidor (`STATELESS`). O token carrega o papel do usuario e o ID para autorizacao rapida.
+* **Perfis de Acesso (RBAC)**:
+  * `ADMIN`: Acesso irrestrito a relatorios financeiros, cadastro de salas, planos e administracao de usuarios.
+  * `COLABORADOR`: Operacao da catraca, agendamentos, estoque e atendimento a alunos.
+  * `CLIENTE`: Consulta aos seus proprios agendamentos.
 
-### 3.4 Controle de Concorrencia e Validacao da Catraca
-* **Decisao**: O servico `CatracaService` executa validacao deterministica de agendamentos com status `CONFIRMADO`, associando o intervalo de tempo exato (`dataHoraInicio` ate `dataHoraFim`) do aluno.
-* **Racional**:
-  * **Bloqueio a Fraudes**: Qualquer tentativa de acesso fora do horario agendado, com mensalidade inativa ou sem confirmacao de pagamento gera log de auditoria persistido (`RegistroCatraca`) com status `liberado = false` e motivo explicito (ex: `"Nenhuma diaria ou mensalidade confirmada e ativa para este horario"`), retornando HTTP 403 Forbidden.
+### 3.3 Regras de Concorrencia e Catraca
+O `CatracaService` faz a verificacao deterministica consultando os agendamentos com status `CONFIRMADO` no intervalo de horario da requisicao. Caso o aluno nao possua reserva confirmada ou plano ativo para aquele momento, o acesso e recusado com status 403 e o evento e gravado para auditoria.
 
-### 3.5 Versionamento de Banco de Dados com Flyway
-* **Decisao**: Desabilitar geracao automatica de tabelas em producao (`ddl-auto: validate`) e adotar migracoes versionadas via Flyway (`V1__create_tables.sql`, `V2__insert_initial_data.sql`).
-* **Racional**:
-  * **Rastreabilidade e Determinismo**: Cada alteracao de schema e versionada em codigo. Ambientes de integracao continua, testes locais e producao compartilham rigorosamente a mesma estrutura relacional.
+### 3.4 Migracoes de Banco com Flyway
+Toda a criacao e evolucao das tabelas e controlada por scripts SQL versionados (`V1__create_tables.sql`, `V2__insert_initial_data.sql`), garantindo que o banco de dados seja criado de forma identica em qualquer ambiente.
 
-### 3.6 Frontend: Monorepo SPA Integrado (React + TypeScript + Tailwind)
-* **Decisao**: Frontend construido em React 18 / Vite, compilado diretamente para a pasta estatica do Spring Boot (`src/main/resources/static`).
-* **Racional**:
-  * **Simplicidade Operacional**: Um unico artefato executavel (`.jar`) entrega tanto a API REST quanto a interface web, reduzindo a complexidade de infraestrutura e pipelines de deploy.
-  * **Padrao Visual Corporativo**: Interface no padrao Google Workspace / Material Design com foco em densidade de informacao, navegacao por abas (`Alunos` vs `Equipe`) e metricas 100% dinamicas em tempo real.
+### 3.5 Frontend Integrado
+O frontend em React 18 e compilado para a pasta `src/main/resources/static` do Spring Boot, permitindo que a aplicacao inteira seja executada a partir de um unico arquivo `.jar`.
 
 ---
 
-## 4. Regras de Negocio Implementadas
+## 4. Regras de Negocio
 
 | Modulo | Regra de Negocio | Comportamento do Sistema |
 | :--- | :--- | :--- |
-| **Catraca** | Validacao de Entrada/Saida | Exige agendamento `CONFIRMADO` no horario corrente ou mensalidade ativa. Rejeicoes gravam auditoria com CPF mascarado (LGPD). |
-| **Agendamentos** | Capacidade de Sala | Bloqueia novas reservas se o total de alunos confirmados no horario atingir `sala.capacidadeMaxima`. |
-| **Agendamentos** | Rotina de Expirados | Cancela automaticamente reservas preliminares pendentes ha mais de 5 dias uteis sem pagamento. |
-| **Financeiro** | DRE Mensal | Consolidacao em tempo real: `Receitas (Planos + Lojinha) − Despesas Operacionais = Lucro Liquido`. |
-| **Produtos** | Baixa de Estoque | Vendas no balcao deduzem estoque em transacao atomica e geram registro na tabela de transacoes contabeis. |
-| **Seguranca** | Protecao de Dados | CPFs expostos na interface sao mascarados conforme diretrizes de privacidade. |
+| **Catraca** | Liberacao de Acesso | Valida se ha diaria confirmada ou plano ativo no horario atual. Bloqueios geram log com CPF mascarado. |
+| **Agendamentos** | Capacidade da Sala | Impede novas reservas quando a contagem de confirmados atinge a capacidade maxima da sala. |
+| **Agendamentos** | Limpeza de Expirados | Cancela reservas em estado preliminar que nao tiveram pagamento confirmado em ate 5 dias uteis. |
+| **Financeiro** | Calculo do DRE | Soma entradas (mensalidades, diarias e vendas) e subtrai despesas para compor o resultado do mes. |
+| **Produtos** | Controle de Estoque | Atualiza a quantidade disponivel em transacao atômica no momento da venda. |
 
 ---
 
-## 5. Stack Tecnologica
+## 5. Tecnologias Utilizadas
 
 ### Backend
-* **Linguagem**: Java 21 (LTS)
-* **Framework**: Spring Boot 3.3.4
-  * Spring Data JPA
-  * Spring Security 6 (Stateless JWT)
-  * Spring Validation
-* **Banco de Dados**: H2 Database (Dev/Test) / PostgreSQL Ready
-* **Migracoes**: Flyway 10.x
-* **Documentacao de API**: Springdoc OpenAPI 2.6.0 (Swagger 3)
-* **Testes**: JUnit 5, Mockito, Spring Boot Test (`MockMvc`)
+* Java 21 (LTS)
+* Spring Boot 3.3.4 (Spring Data JPA, Spring Security, Validation)
+* H2 Database (desenvolvimento/testes) e suporte a PostgreSQL
+* Flyway Migration
+* Springdoc OpenAPI 2.6.0 (Swagger 3)
+* JUnit 5 e MockMvc
 
 ### Frontend
-* **Core**: React 18, TypeScript, Vite
-* **Estilizacao**: Tailwind CSS (Paleta Slate/Zinc corporativa)
-* **Roteamento**: React Router DOM 6
-* **Comunicacao HTTP**: Axios com interceptors de autenticacao Bearer
-* **Icones**: Lucide React
+* React 18 com TypeScript
+* Vite
+* Tailwind CSS
+* React Router DOM 6
+* Axios
+* Lucide React
 
 ---
 
-## 6. Como Executar o Projeto
+## 6. Como Rodar o Projeto
 
 ### Pre-requisitos
-* **Java JDK 21+** instalado e configurado no `PATH`.
-* **Maven 3.8+** (ou utilizar o wrapper `./mvnw`).
-* **Node.js 18+** e **npm** (para compilacao do frontend).
+* Java JDK 21 instalado
+* Maven 3.8+
+* Node.js 18+ e npm
 
 ---
 
-### 6.1 Compilacao do Frontend
-Para compilar os arquivos estaticos do React para a pasta de recursos do Spring Boot:
+### 6.1 Compilar o Frontend
+Gera os arquivos estaticos na pasta de recursos do backend:
 
 ```bash
 cd frontend
@@ -162,88 +136,37 @@ cd ..
 
 ---
 
-### 6.2 Execucao dos Testes Automatizados
-Para executar a suite de testes de integracao e unitarios do Backend:
+### 6.2 Executar os Testes
+Roda os testes automatizados da API:
 
 ```bash
 mvn clean test
 ```
 
-> **Resultado esperado:** 8/8 testes aprovados com sucesso.
-
 ---
 
-### 6.3 Inicializacao da Aplicacao
-Inicie o servidor Spring Boot:
+### 6.3 Iniciar a Aplicacao
+Inicia o servidor backend com a interface web integrada:
 
 ```bash
 mvn spring-boot:run
 ```
 
-A aplicacao estara disponivel em:
-* **Interface Web (SPA)**: [http://localhost:8080](http://localhost:8080)
-* **Swagger UI (Documentacao OpenAPI)**: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
-* **Console H2 (Banco de Dados em Memoria)**: [http://localhost:8080/h2-console](http://localhost:8080/h2-console)
-  * *JDBC URL*: `jdbc:h2:mem:academiadb`
-  * *Usuario*: `SA`
-  * *Senha*: *(em branco)*
+Acessos disponiveis:
+* **Sistema Web**: [http://localhost:8080](http://localhost:8080)
+* **Documentacao Swagger**: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+* **Console do Banco H2**: [http://localhost:8080/h2-console](http://localhost:8080/h2-console) (JDBC URL: `jdbc:h2:mem:academiadb`, Usuario: `SA`, Senha em branco)
 
 ---
 
-## 7. Credenciais Padrao para Testes
+## 7. Usuarios para Teste
 
 | Perfil | E-mail | Senha | Permissoes |
 | :--- | :--- | :--- | :--- |
-| **Administrador** | `admin@academia.com.br` | `admin123` | Acesso total: Financeiro, DRE, Usuarios, Catraca, Salas, Planos, Produtos. |
-| **Colaborador** | `colaborador@academia.com.br` | `admin123` | Operacao diaria: Agendamentos, Check-in na Catraca, Vendas de Balcao e Salas. |
+| **Administrador** | `admin@academia.com.br` | `admin123` | Acesso total: Financeiro, Usuarios, Catraca, Salas, Planos, Produtos. |
+| **Colaborador** | `colaborador@academia.com.br` | `admin123` | Operacao de rotina: Agendamentos, Catraca, Vendas e Salas. |
 
 ---
 
-## 8. Como Foi Construido (Jornada de Desenvolvimento Passo a Passo)
-
-A construcao do sistema seguiu uma abordagem estruturada em 6 fases de engenharia:
-
-```mermaid
-flowchart LR
-    A["1. Modelagem de Dominio"] --> B["2. Migracoes e Banco"]
-    B --> C["3. Camada de Servicos e Invariantes"]
-    C --> D["4. Seguranca JWT e REST API"]
-    D --> E["5. Frontend SPA Corporativo"]
-    E --> F["6. Integracao e Testes E2E"]
-```
-
-### Fase 1: Modelagem do Dominio e Entidades JPA
-1. Mapeamento das regras de negocio em entidades relacionais (`Usuario`, `Sala`, `Plano`, `Agendamento`, `RegistroCatraca`, `Produto`, `Despesa`, `Transacao`).
-2. Configuracao de relacionamentos JPA com lazy loading para evitar problemas de *N+1 queries*.
-
-### Fase 2: Versionamento do Banco de Dados com Flyway
-1. Escrita dos scripts SQL DDL (`V1__create_tables.sql`) com criacao de indices em campos de busca frequente (`cpf`, `email`, `data_hora_inicio`).
-2. Criacao do script de seed (`V2__insert_initial_data.sql`) com salas, planos, usuarios com senhas criptografadas em BCrypt e inventario inicial.
-
-### Fase 3: Camada de Servicos e Invariantes de Negocio
-1. Implementacao de `CatracaService` com validacao de status de pagamento e janela de horario do aluno.
-2. Implementacao de `AgendamentoService` com calculo automatico de lotacao de sala e estorno financeiro em cancelamentos.
-3. Implementacao de `FinanceiroService` com consolidacao contabil dinamica de receitas e despesas por competencia mensal (DRE).
-
-### Fase 4: Seguranca, JWT e REST Controllers
-1. Configuracao do Spring Security 6 com filtro customizado `SecurityFilter` para extracao e validacao do token JWT no header `Authorization: Bearer <token>`.
-2. Criacao de Controllers RESTful com `@PreAuthorize` e anotacoes completas do OpenAPI / Swagger 3.
-3. Tratamento padronizado de excecoes via `GlobalExceptionHandler` utilizando o padrao RFC 7807 (Problem Details).
-
-### Fase 5: Frontend SPA Corporativo em React e Tailwind
-1. Criacao do layout corporativo no padrao Google Workspace com menu lateral direto, barra superior e separacao em abas (`Alunos` e `Equipe`).
-2. Implementacao de paginas dedicadas e 100% dinamicas:
-   * **Dashboard**: Calculo em tempo real de ocupacao, acessos e faturamento mensal.
-   * **Agendamentos**: Filtros compostos, criacao de diarias/mensalidades com preco dinamico e rotina de cancelamento.
-   * **Catraca**: Simulador de eventos de hardware e feed de auditoria.
-   * **Financeiro**: DRE com seletor mensal e lancamento de despesas operacionais.
-   * **Produtos**: Gestao de inventario e vendas no balcao.
-
-### Fase 6: Integracao, Empacotamento e Testes
-1. Configuracao do roteamento do Spring Boot (`WebConfig` e `SecurityConfigurations`) para servir a SPA sem conflito com endpoints de API (`/api/**`).
-2. Implementacao da suite de testes de integracao com `MockMvc` cobrindo cenarios criticos de autenticacao e validacao de catraca.
-
----
-
-## 9. Licenca
-Este projeto e distribuido sob os termos da licenca proprietaria corporativa para fins de demonstracao tecnica e avaliacao profissional.
+## 8. Licenca
+Projeto sob licenca MIT.
