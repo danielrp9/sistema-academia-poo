@@ -1,0 +1,57 @@
+services:
+  # ==========================================
+  # Banco de Dados PostgreSQL Persistente
+  # ==========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: academia_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-academiadb}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres_secure_password_123}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-academiadb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - academia_network
+
+  # ==========================================
+  # Backend Spring Boot 3 + Interface Embutida
+  # ==========================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: academia_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-academiadb}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres_secure_password_123}
+      JWT_SECRET: ${JWT_SECRET:-super_secret_jwt_key_academia_milho_verde_2026_production_safe_token_key}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-8}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173,http://localhost:8080}
+      SERVER_PORT: 8080
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    networks:
+      - academia_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  academia_network:
+    driver: bridge
